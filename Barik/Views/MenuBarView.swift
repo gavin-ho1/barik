@@ -3,6 +3,11 @@ import SwiftUI
 struct MenuBarView: View {
     @ObservedObject var configManager = ConfigManager.shared
 
+    private struct SectionChunk {
+        let items: [TomlWidgetItem]
+        let separatorID: String?
+    }
+
     var body: some View {
         let theme: ColorScheme? =
             switch configManager.config.rootToml.theme {
@@ -18,7 +23,7 @@ struct MenuBarView: View {
 
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                HStack(spacing: configManager.config.experimental.foreground.spacing) {
+                HStack(spacing: 0) {
                     renderItems(items)
                 }
 
@@ -37,17 +42,53 @@ struct MenuBarView: View {
 
     @ViewBuilder
     private func renderItems(_ items: [TomlWidgetItem]) -> some View {
-        let sections = items.split(whereSeparator: { $0.id == "divider" })
-        ForEach(0..<sections.count, id: \.self) { sectionIndex in
-            let section = Array(sections[sectionIndex])
-            renderSection(section)
-            if sectionIndex < sections.count - 1 {
+        let chunks = sectionChunks(from: items)
+        ForEach(0..<chunks.count, id: \.self) { index in
+            let chunk = chunks[index]
+            renderSection(chunk.items)
+
+            switch chunk.separatorID {
+            case "divider":
                 Rectangle()
                     .fill(Color.active)
                     .frame(width: 2, height: 15)
                     .clipShape(Capsule())
+                    .padding(.horizontal, configManager.config.experimental.foreground.spacing)
+
+            case "invisible-divider", "zero-width-spacer":
+                Color.clear
+                    .frame(width: configManager.config.experimental.foreground.spacing)
+
+            default:
+                EmptyView()
             }
         }
+    }
+
+    private func sectionChunks(from items: [TomlWidgetItem]) -> [SectionChunk] {
+        var chunks: [SectionChunk] = []
+        var currentItems: [TomlWidgetItem] = []
+
+        for item in items {
+            if isSectionSeparator(item.id) {
+                if !currentItems.isEmpty {
+                    chunks.append(SectionChunk(items: currentItems, separatorID: item.id))
+                    currentItems = []
+                }
+            } else {
+                currentItems.append(item)
+            }
+        }
+
+        if !currentItems.isEmpty {
+            chunks.append(SectionChunk(items: currentItems, separatorID: nil))
+        }
+
+        return chunks
+    }
+
+    private func isSectionSeparator(_ id: String) -> Bool {
+        id == "divider" || id == "invisible-divider" || id == "zero-width-spacer"
     }
 
     @ViewBuilder
@@ -118,6 +159,9 @@ struct MenuBarView: View {
                 .fill(Color.active)
                 .frame(width: 2, height: 15)
                 .clipShape(Capsule())
+
+        case "invisible-divider", "zero-width-spacer":
+            EmptyView()
 
         case "system-banner":
             SystemBannerWidget()

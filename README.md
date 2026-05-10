@@ -83,6 +83,7 @@ displayed = [ # widgets on menu bar
     "default.nowplaying",
     "default.network",
     "default.battery",
+    # "invisible-divider", # zero-width section break with no line or padding
     "divider",
     # { "default.time" = { time-zone = "America/Los_Angeles", format = "E d, hh:mm" } },
     "default.time",
