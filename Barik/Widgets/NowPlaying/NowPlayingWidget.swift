@@ -26,6 +26,7 @@ struct NowPlayingWidget: View {
 
                 // Visible content with fixed animated width.
                 VisibleNowPlayingContent(song: song, width: animatedWidth)
+                    .contentShape(Rectangle())
                     .onTapGesture {
                         MenuBarPopup.show(rect: widgetFrame, id: "nowplaying") {
                             NowPlayingPopup(configProvider: configProvider)
@@ -62,6 +63,10 @@ struct NowPlayingContent: View {
                     AlbumArtView(song: song)
                     SongTextView(song: song)
                 }
+                .padding(.horizontal, 10)
+                .frame(height: 30)
+                .background(Color.noActive)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             } else {
                 HStack(spacing: 8) {
                     AlbumArtView(song: song)
@@ -112,7 +117,7 @@ struct VisibleNowPlayingContent: View {
 
     var body: some View {
         NowPlayingContent(song: song)
-            .frame(width: width, height: 38)
+            .frame(width: width, height: 30)
             .animation(.smooth(duration: 0.1), value: song)
             .transition(.blurReplace)
     }
