@@ -35,8 +35,8 @@ struct TimeWidget: View {
             }
         }
         .font(.headline)
-        .foregroundStyle(.foregroundOutside)
-        .shadow(color: .foregroundShadowOutside, radius: 3)
+        .foregroundStyle(Color.foreground)
+        .shadow(color: Color.foregroundShadow, radius: 3)
         .onReceive(timer) { date in
             currentTime = date
         }
