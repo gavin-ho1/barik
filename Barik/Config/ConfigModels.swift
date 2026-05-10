@@ -273,6 +273,7 @@ struct ForegroundConfig: Decodable {
     let spacing: CGFloat
     let position: BarPosition
     let topPadding: CGFloat
+    let popupOffset: CGFloat
     
     init() {
         self.height = .barikDefault
@@ -281,6 +282,7 @@ struct ForegroundConfig: Decodable {
         self.spacing = 15
         self.position = .top
         self.topPadding = 0
+        self.popupOffset = 5
     }
     
     init(from decoder: Decoder) throws {
@@ -291,6 +293,7 @@ struct ForegroundConfig: Decodable {
         spacing = try container.decodeIfPresent(CGFloat.self, forKey: .spacing) ?? 15
         position = try container.decodeIfPresent(BarPosition.self, forKey: .position) ?? .top
         topPadding = try container.decodeIfPresent(CGFloat.self, forKey: .topPadding) ?? 0
+        popupOffset = try container.decodeIfPresent(CGFloat.self, forKey: .popupOffset) ?? 5
     }
     
     enum CodingKeys: String, CodingKey {
@@ -300,6 +303,7 @@ struct ForegroundConfig: Decodable {
         case spacing
         case position
         case topPadding = "top-padding"
+        case popupOffset = "popup-offset"
     }
     
     func resolveHeight() -> CGFloat {

@@ -37,12 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupPanels() {
         guard let screenFrame = NSScreen.main?.frame else { return }
         let position = ConfigManager.shared.config.experimental.foreground.position
-        let topPadding = ConfigManager.shared.config.experimental.foreground.topPadding
         let panelFrame = calculatePanelFrame(screenFrame: screenFrame, position: position)
-        
-        print("[Barik Debug] position=\(position), topPadding=\(topPadding)")
-        print("[Barik Debug] screenFrame=\(screenFrame)")
-        print("[Barik Debug] panelFrame=\(panelFrame)")
         
         setupPanel(
             &backgroundPanel,
@@ -62,8 +57,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func calculatePanelFrame(screenFrame: CGRect, position: BarPosition) -> CGRect {
         let foregroundHeight = ConfigManager.shared.config.experimental.foreground.resolveHeight()
         let topPadding = ConfigManager.shared.config.experimental.foreground.topPadding
-        
-        print("[Barik Debug] calculatePanelFrame: position=\(position), foregroundHeight=\(foregroundHeight), topPadding=\(topPadding)")
         
         switch position {
         case .top:

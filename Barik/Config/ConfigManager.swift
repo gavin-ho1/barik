@@ -45,17 +45,14 @@ final class ConfigManager: ObservableObject {
     }
 
     private func parseConfigFile(at path: String) {
-        print("[Barik Debug] Loading config from: \(path)")
         do {
             let content = try String(contentsOfFile: path, encoding: .utf8)
             let decoder = TOMLDecoder()
             let rootToml = try decoder.decode(RootToml.self, from: content)
-            print("[Barik Debug] Parsed experimental.foreground.position = \(String(describing: rootToml.experimental?.foreground.position))")
-            print("[Barik Debug] Parsed experimental.foreground.topPadding = \(String(describing: rootToml.experimental?.foreground.topPadding))")
             self.config = Config(rootToml: rootToml)
         } catch {
             initError = "Error parsing TOML file: \(error.localizedDescription)"
-            print("[Barik Debug] Error when parsing TOML file:", error)
+            print("Error when parsing TOML file:", error)
         }
     }
 
