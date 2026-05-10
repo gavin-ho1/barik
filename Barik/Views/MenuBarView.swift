@@ -16,23 +16,25 @@ struct MenuBarView: View {
 
         let items = configManager.config.rootToml.widgets.displayed
 
-        HStack(spacing: 0) {
-            HStack(spacing: configManager.config.experimental.foreground.spacing) {
-                ForEach(0..<items.count, id: \.self) { index in
-                    let item = items[index]
-                    buildView(for: item)
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                HStack(spacing: configManager.config.experimental.foreground.spacing) {
+                    ForEach(0..<items.count, id: \.self) { index in
+                        let item = items[index]
+                        buildView(for: item)
+                    }
+                }
+
+                if !items.contains(where: { $0.id == "system-banner" }) {
+                    SystemBannerWidget(withLeftPadding: true)
                 }
             }
-
-            if !items.contains(where: { $0.id == "system-banner" }) {
-                SystemBannerWidget(withLeftPadding: true)
-            }
+            .foregroundStyle(Color.foregroundOutside)
+            .frame(height: max(configManager.config.experimental.foreground.resolveHeight(), 1.0))
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, configManager.config.experimental.foreground.horizontalPadding)
+            .background(.black.opacity(0.001))
         }
-        .foregroundStyle(Color.foregroundOutside)
-        .frame(height: max(configManager.config.experimental.foreground.resolveHeight(), 1.0))
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, configManager.config.experimental.foreground.horizontalPadding)
-        .background(.black.opacity(0.001))
         .preferredColorScheme(theme)
     }
 

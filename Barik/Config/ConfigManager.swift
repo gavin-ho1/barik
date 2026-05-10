@@ -45,16 +45,17 @@ final class ConfigManager: ObservableObject {
     }
 
     private func parseConfigFile(at path: String) {
+        print("[Barik Debug] Loading config from: \(path)")
         do {
             let content = try String(contentsOfFile: path, encoding: .utf8)
             let decoder = TOMLDecoder()
             let rootToml = try decoder.decode(RootToml.self, from: content)
-            DispatchQueue.main.async {
-                self.config = Config(rootToml: rootToml)
-            }
+            print("[Barik Debug] Parsed experimental.foreground.position = \(String(describing: rootToml.experimental?.foreground.position))")
+            print("[Barik Debug] Parsed experimental.foreground.topPadding = \(String(describing: rootToml.experimental?.foreground.topPadding))")
+            self.config = Config(rootToml: rootToml)
         } catch {
             initError = "Error parsing TOML file: \(error.localizedDescription)"
-            print("Error when parsing TOML file:", error)
+            print("[Barik Debug] Error when parsing TOML file:", error)
         }
     }
 
@@ -116,7 +117,9 @@ final class ConfigManager: ObservableObject {
             guard let self = self, let path = self.configFilePath else {
                 return
             }
-            self.parseConfigFile(at: path)
+            DispatchQueue.main.async {
+                self.parseConfigFile(at: path)
+            }
         }
         fileWatchSource?.setCancelHandler { [weak self] in
             if let fd = self?.fileDescriptor, fd != -1 {

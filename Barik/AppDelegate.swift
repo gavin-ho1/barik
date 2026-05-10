@@ -36,30 +36,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Configures and displays the background and menu bar panels.
     private func setupPanels() {
         guard let screenFrame = NSScreen.main?.frame else { return }
+        let position = ConfigManager.shared.config.experimental.foreground.position
+        let topPadding = ConfigManager.shared.config.experimental.foreground.topPadding
+        let panelFrame = calculatePanelFrame(screenFrame: screenFrame, position: position)
+        
+        print("[Barik Debug] position=\(position), topPadding=\(topPadding)")
+        print("[Barik Debug] screenFrame=\(screenFrame)")
+        print("[Barik Debug] panelFrame=\(panelFrame)")
+        
         setupPanel(
             &backgroundPanel,
             frame: screenFrame,
+            panelFrame: screenFrame,
             level: Int(CGWindowLevelForKey(.desktopWindow)),
             hostingRootView: AnyView(BackgroundView()))
         setupPanel(
             &menuBarPanel,
             frame: screenFrame,
+            panelFrame: panelFrame,
             level: Int(CGWindowLevelForKey(.backstopMenu)),
             hostingRootView: AnyView(MenuBarView()))
     }
 
+    /// Calculates the panel frame based on position configuration
+    private func calculatePanelFrame(screenFrame: CGRect, position: BarPosition) -> CGRect {
+        let foregroundHeight = ConfigManager.shared.config.experimental.foreground.resolveHeight()
+        let topPadding = ConfigManager.shared.config.experimental.foreground.topPadding
+        
+        print("[Barik Debug] calculatePanelFrame: position=\(position), foregroundHeight=\(foregroundHeight), topPadding=\(topPadding)")
+        
+        switch position {
+        case .top:
+            return CGRect(x: screenFrame.minX, y: screenFrame.maxY - foregroundHeight - topPadding, width: screenFrame.width, height: foregroundHeight)
+        case .bottom:
+            return CGRect(x: screenFrame.minX, y: screenFrame.minY, width: screenFrame.width, height: foregroundHeight)
+        }
+    }
+
     /// Sets up an NSPanel with the provided parameters.
     private func setupPanel(
-        _ panel: inout NSPanel?, frame: CGRect, level: Int,
+        _ panel: inout NSPanel?, 
+        frame: CGRect, 
+        panelFrame: CGRect,
+        level: Int,
         hostingRootView: AnyView
     ) {
         if let existingPanel = panel {
-            existingPanel.setFrame(frame, display: true)
+            existingPanel.setFrame(panelFrame, display: true)
             return
         }
 
         let newPanel = NSPanel(
-            contentRect: frame,
+            contentRect: panelFrame,
             styleMask: [.nonactivatingPanel],
             backing: .buffered,
             defer: false)
