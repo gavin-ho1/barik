@@ -57,7 +57,7 @@ struct NowPlayingContent: View {
     
     var body: some View {
         Group {
-            if foregroundHeight < 38 {
+            if foregroundHeight < 38 || !configManager.config.experimental.foreground.widgetsBackground.displayed {
                 HStack(spacing: 8) {
                     AlbumArtView(song: song)
                     SongTextView(song: song)
