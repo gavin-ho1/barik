@@ -57,30 +57,11 @@ struct NowPlayingContent: View {
     var foregroundHeight: CGFloat { configManager.config.experimental.foreground.resolveHeight() }
     
     var body: some View {
-        Group {
-            if foregroundHeight < 38 || !configManager.config.experimental.foreground.widgetsBackground.displayed {
-                HStack(spacing: 8) {
-                    AlbumArtView(song: song)
-                    SongTextView(song: song)
-                }
-                .padding(.horizontal, 10)
-                .frame(height: 30)
-                .background(Color.noActive)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            } else {
-                HStack(spacing: 8) {
-                    AlbumArtView(song: song)
-                    SongTextView(song: song)
-                }
-                .padding(.horizontal, foregroundHeight < 45 ? 8 : 12)
-                .frame(height: foregroundHeight < 45 ? 30 : 38)
-                .background(configManager.config.experimental.foreground.widgetsBackground.blur)
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule().stroke(Color.noActive, lineWidth: 1)
-                )
-            }
+        HStack(spacing: 8) {
+            AlbumArtView(song: song)
+            SongTextView(song: song)
         }
+        .padding(.horizontal, 10)
         .foregroundColor(.foreground)
     }
 }

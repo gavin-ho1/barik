@@ -19,10 +19,7 @@ struct MenuBarView: View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 HStack(spacing: configManager.config.experimental.foreground.spacing) {
-                    ForEach(0..<items.count, id: \.self) { index in
-                        let item = items[index]
-                        buildView(for: item)
-                    }
+                    renderItems(items)
                 }
 
                 if !items.contains(where: { $0.id == "system-banner" }) {
@@ -36,6 +33,58 @@ struct MenuBarView: View {
             .background(.black.opacity(0.001))
         }
         .preferredColorScheme(theme)
+    }
+
+    @ViewBuilder
+    private func renderItems(_ items: [TomlWidgetItem]) -> some View {
+        let sections = items.split(whereSeparator: { $0.id == "divider" })
+        ForEach(0..<sections.count, id: \.self) { sectionIndex in
+            let section = Array(sections[sectionIndex])
+            renderSection(section)
+            if sectionIndex < sections.count - 1 {
+                Rectangle()
+                    .fill(Color.active)
+                    .frame(width: 2, height: 15)
+                    .clipShape(Capsule())
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func renderSection(_ items: [TomlWidgetItem]) -> some View {
+        let subGroups = items.split(whereSeparator: { $0.id == "spacer" })
+        ForEach(0..<subGroups.count, id: \.self) { subIndex in
+            let subGroup = Array(subGroups[subIndex])
+            if subIndex > 0 {
+                Spacer().frame(minWidth: 50, maxWidth: .infinity)
+            }
+            renderWidgetGroup(subGroup)
+        }
+    }
+
+    @ViewBuilder
+    private func renderWidgetGroup(_ items: [TomlWidgetItem]) -> some View {
+        if items.isEmpty {
+            EmptyView()
+        } else if items.count == 1 && items[0].id == "default.spaces" {
+            buildView(for: items[0])
+        } else if items.count == 1 {
+            buildView(for: items[0])
+                .padding(.horizontal, 10)
+                .frame(height: 30)
+                .background(Color.noActive)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        } else {
+            HStack(spacing: configManager.config.experimental.foreground.spacing) {
+                ForEach(0..<items.count, id: \.self) { i in
+                    buildView(for: items[i])
+                }
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 30)
+            .background(Color.noActive)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
     }
 
     @ViewBuilder
@@ -56,7 +105,7 @@ struct MenuBarView: View {
         case "default.time":
             TimeWidget(calendarManager: CalendarManager(configProvider: config))
                 .environmentObject(config)
-            
+
         case "default.nowplaying":
             NowPlayingWidget()
                 .environmentObject(config)

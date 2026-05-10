@@ -41,9 +41,6 @@ struct TimeWidget: View {
             currentTime = date
         }
         .padding(.horizontal, 10)
-        .frame(height: 30)
-        .background(Color.noActive)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .background(
             GeometryReader { geometry in
                 Color.clear
