@@ -8,7 +8,9 @@ struct NowPlayingWidget: View {
 
     @State private var widgetFrame: CGRect = .zero
     @State private var animatedWidth: CGFloat = 0
+    @State private var lastSong: NowPlayingSong?
     private let maxWidgetWidth: CGFloat = 500
+    private let iconWidth: CGFloat = 12
 
     var body: some View {
         ZStack(alignment: .trailing) {
@@ -42,6 +44,42 @@ struct NowPlayingWidget: View {
                         .hidden()
                         .fixedSize()
                     )
+            } else if let lastSong = lastSong {
+                // Show last song content during collapse animation
+                VisibleNowPlayingContent(song: lastSong, width: animatedWidth)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        MenuBarPopup.show(rect: widgetFrame, id: "nowplaying") {
+                            NowPlayingPopup(configProvider: configProvider)
+                        }
+                    }
+            } else {
+                // Show music icon when no song is playing
+                Image(systemName: "music.note")
+                    .font(.system(size: 12))
+                    .foregroundColor(.foreground)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        MenuBarPopup.show(rect: widgetFrame, id: "nowplaying") {
+                            NowPlayingPopup(configProvider: configProvider)
+                        }
+                    }
+            }
+        }
+        .onChange(of: playingManager.nowPlaying) { oldValue, newValue in
+            if oldValue != nil && newValue == nil {
+                // Song stopped - save last song and animate collapse
+                lastSong = oldValue
+                withAnimation(.smooth(duration: 0.3)) {
+                    animatedWidth = iconWidth
+                }
+                // Clear lastSong shortly after animation starts for smoother transition
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    lastSong = nil
+                }
+            } else if newValue != nil {
+                // New song started - clear last song immediately
+                lastSong = nil
             }
         }
         .background(
