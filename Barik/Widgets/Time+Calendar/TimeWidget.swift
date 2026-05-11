@@ -40,7 +40,7 @@ struct TimeWidget: View {
         .onReceive(timer) { date in
             currentTime = date
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 0)
         .background(
             GeometryReader { geometry in
                 Color.clear

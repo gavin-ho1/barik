@@ -61,7 +61,7 @@ struct NowPlayingContent: View {
             AlbumArtView(song: song)
             SongTextView(song: song)
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 0)
         .foregroundColor(.foreground)
     }
 }
