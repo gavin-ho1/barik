@@ -69,7 +69,9 @@ struct NowPlayingContent: View {
     var body: some View {
         HStack(spacing: 8) {
             AlbumArtView(song: song)
-            SongTextView(song: song)
+            if song.state != .paused {
+                SongTextView(song: song)
+            }
         }
         .padding(.horizontal, 0)
         .foregroundColor(.foreground)
@@ -131,11 +133,6 @@ struct AlbumArtView: View {
             .scaleEffect(song.state == .paused ? 0.9 : 1)
             .brightness(song.state == .paused ? -0.3 : 0)
 
-            if song.state == .paused {
-                Image(systemName: "pause.fill")
-                    .foregroundColor(.icon)
-                    .transition(.blurReplace)
-            }
         }
         .animation(.smooth(duration: 0.1), value: song.state == .paused)
     }
