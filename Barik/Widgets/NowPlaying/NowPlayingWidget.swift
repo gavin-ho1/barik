@@ -8,22 +8,11 @@ struct NowPlayingWidget: View {
 
     @State private var widgetFrame: CGRect = .zero
     @State private var animatedWidth: CGFloat = 0
+    private let maxWidgetWidth: CGFloat = 500
 
     var body: some View {
         ZStack(alignment: .trailing) {
             if let song = playingManager.nowPlaying {
-                // Hidden view for measuring the intrinsic width.
-                MeasurableNowPlayingContent(song: song) { measuredWidth in
-                    if animatedWidth == 0 {
-                        animatedWidth = measuredWidth
-                    } else if animatedWidth != measuredWidth {
-                        withAnimation(.smooth) {
-                            animatedWidth = measuredWidth
-                        }
-                    }
-                }
-                .hidden()
-
                 // Visible content with fixed animated width.
                 VisibleNowPlayingContent(song: song, width: animatedWidth)
                     .contentShape(Rectangle())
@@ -32,6 +21,27 @@ struct NowPlayingWidget: View {
                             NowPlayingPopup(configProvider: configProvider)
                         }
                     }
+
+                // Hidden view for measuring the intrinsic width.
+                // Placed in an overlay on a zero-size view so it doesn't
+                // affect ZStack layout, while .fixedSize() lets it measure
+                // its natural unconstrained width.
+                Color.clear
+                    .frame(width: 0, height: 0)
+                    .overlay(
+                        MeasurableNowPlayingContent(song: song) { measuredWidth in
+                            let clampedWidth = min(measuredWidth, maxWidgetWidth)
+                            if animatedWidth == 0 {
+                                animatedWidth = clampedWidth
+                            } else if animatedWidth != clampedWidth {
+                                withAnimation(.smooth) {
+                                    animatedWidth = clampedWidth
+                                }
+                            }
+                        }
+                        .hidden()
+                        .fixedSize()
+                    )
             }
         }
         .background(
@@ -147,13 +157,19 @@ struct SongTextView: View {
                     .font(.system(size: 11))
                     .fontWeight(.medium)
                     .padding(.trailing, 2)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 Text(song.artist)
                     .opacity(0.8)
                     .font(.system(size: 10))
                     .padding(.trailing, 2)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             } else {
                 Text(song.artist + " — " + song.title)
                     .font(.system(size: 12))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
         }
         // Disable animations for text changes.
