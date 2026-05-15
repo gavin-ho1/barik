@@ -35,34 +35,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Configures and displays the background and menu bar panels.
     private func setupPanels() {
-        guard let screenFrame = NSScreen.main?.frame else { return }
+        guard let screen = NSScreen.main else { return }
+        let screenFrame = screen.frame
         let position = ConfigManager.shared.config.experimental.foreground.position
-        let panelFrame = calculatePanelFrame(screenFrame: screenFrame, position: position)
+        let panelFrame = calculatePanelFrame(
+            screenFrame: screenFrame,
+            visibleFrame: screen.visibleFrame,
+            position: position
+        )
         
         setupPanel(
             &backgroundPanel,
             frame: screenFrame,
             panelFrame: screenFrame,
             level: NSWindow.Level.statusBar.rawValue - 1,
+            ignoresMouseEvents: true,
             hostingRootView: AnyView(BackgroundView()))
         setupPanel(
             &menuBarPanel,
             frame: screenFrame,
             panelFrame: panelFrame,
             level: NSWindow.Level.statusBar.rawValue,
+            ignoresMouseEvents: false,
             hostingRootView: AnyView(MenuBarView()))
     }
 
     /// Calculates the panel frame based on position configuration
-    private func calculatePanelFrame(screenFrame: CGRect, position: BarPosition) -> CGRect {
+    private func calculatePanelFrame(
+        screenFrame: CGRect,
+        visibleFrame: CGRect,
+        position: BarPosition
+    ) -> CGRect {
         let foregroundHeight = ConfigManager.shared.config.experimental.foreground.resolveHeight()
         let topPadding = ConfigManager.shared.config.experimental.foreground.topPadding
         
         switch position {
         case .top:
-            return CGRect(x: screenFrame.minX, y: screenFrame.maxY - foregroundHeight - topPadding, width: screenFrame.width, height: foregroundHeight)
+            return CGRect(
+                x: screenFrame.minX,
+                y: screenFrame.maxY - foregroundHeight - topPadding,
+                width: screenFrame.width,
+                height: foregroundHeight
+            )
         case .bottom:
-            return CGRect(x: screenFrame.minX, y: screenFrame.minY, width: screenFrame.width, height: foregroundHeight)
+            return CGRect(
+                x: screenFrame.minX,
+                y: screenFrame.minY,
+                width: screenFrame.width,
+                height: foregroundHeight
+            )
         }
     }
 
@@ -72,10 +93,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         frame: CGRect, 
         panelFrame: CGRect,
         level: Int,
+        ignoresMouseEvents: Bool,
         hostingRootView: AnyView
     ) {
         if let existingPanel = panel {
             existingPanel.setFrame(panelFrame, display: true)
+            existingPanel.ignoresMouseEvents = ignoresMouseEvents
             return
         }
 
@@ -88,9 +111,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         newPanel.backgroundColor = .clear
         newPanel.hasShadow = false
         newPanel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        newPanel.ignoresMouseEvents = ignoresMouseEvents
         newPanel.setAccessibilityRole(.popover)
         newPanel.setAccessibilityElement(false)
-        newPanel.contentView = NSHostingView(rootView: hostingRootView)
+        newPanel.contentView = ClickThroughHostingView(rootView: hostingRootView)
         newPanel.orderFront(nil)
         panel = newPanel
     }
@@ -104,5 +128,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         
         alert.runModal()
         NSApplication.shared.terminate(nil)
+    }
+}
+
+private final class ClickThroughHostingView<Content: View>: NSHostingView<Content> {
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let hitView = super.hitTest(point)
+
+        if hitView === self {
+            return nil
+        }
+
+        return hitView
     }
 }

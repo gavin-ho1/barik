@@ -6,6 +6,7 @@ class OmniWMSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
 
     /// Mapping from hashed Int id back to opaque string id for focus commands.
     private var windowIdMap: [Int: String] = [:]
+    private let windowIdMapQueue = DispatchQueue(label: "barik.omniwm.window-id-map")
 
     func getSpacesWithWindows() -> [OmniWMSpace]? {
         guard let spaces = fetchSpaces() else { return nil }
@@ -44,11 +45,11 @@ class OmniWMSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
         var spaceDict = Dictionary(
             uniqueKeysWithValues: spaces.map { ($0.rawName, $0) })
 
-        windowIdMap.removeAll()
+        var nextWindowIdMap: [Int: String] = [:]
         let filteredWindows = windows.filter { $0.appName != "Barik" }
         for window in filteredWindows {
             var mutableWindow = window
-            windowIdMap[window.id] = window.opaqueId
+            nextWindowIdMap[window.id] = window.opaqueId
             // isFocused is already set from the JSON
 
             if let ws = wsMap[window.opaqueId], !ws.isEmpty {
@@ -66,6 +67,10 @@ class OmniWMSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
         
         // Hide empty workspaces unless they are currently focused
         let activeSpaces = resultSpaces.filter { !$0.windows.isEmpty || $0.isFocused }
+
+        windowIdMapQueue.sync {
+            windowIdMap = nextWindowIdMap
+        }
         
         return activeSpaces.sorted { ($0.number ?? 0) < ($1.number ?? 0) }
     }
@@ -77,7 +82,10 @@ class OmniWMSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
     func focusWindow(windowId: String) {
         // windowId comes in as a String representation of the hashed Int id.
         // Look up the original opaque id.
-        if let intId = Int(windowId), let opaqueId = windowIdMap[intId] {
+        let opaqueId = windowIdMapQueue.sync {
+            Int(windowId).flatMap { windowIdMap[$0] }
+        }
+        if let opaqueId {
             _ = runOmniWMCommand(arguments: ["window", "focus", opaqueId])
         }
     }

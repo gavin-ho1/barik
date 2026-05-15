@@ -94,6 +94,7 @@ displayed = [ # widgets on menu bar
 space.show-key = true        # show space number (or character, if you use AeroSpace)
 window.show-title = true
 window.title.max-length = 50
+window.ignore-list = ["Barik"] # hide matching apps by app name or, with OmniWM, by bundle ID
 
 # A list of applications that will always be displayed by application name.
 # Other applications will show the window title if there is more than one window.
@@ -130,6 +131,10 @@ blur = 3                  # background type: from 1 to 6 for blur intensity, 7 f
 height = "default"        # available values: default (55.0), menu-bar (height like system menu bar), <float> (e.g., 40, 33.5)
 horizontal-padding = 25   # padding on the left and right corners
 spacing = 15              # spacing between widgets
+
+# When positioned at the top, barik now stays below the system menu bar area.
+# `top-padding` adds extra spacing below that reserved area.
+# top-padding = 0
 
 [experimental.foreground.widgets-background] # settings for widgets background
 displayed = false                            # wrap widgets in their own background

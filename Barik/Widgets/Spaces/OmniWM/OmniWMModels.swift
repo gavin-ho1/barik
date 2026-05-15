@@ -5,6 +5,8 @@ struct OmniWMWindow: WindowModel {
     let opaqueId: String
     let title: String
     let appName: String?
+    let appBundleId: String?
+    let processId: Int?
     var isFocused: Bool
     var appIcon: NSImage?
 
@@ -20,21 +22,25 @@ struct OmniWMWindow: WindowModel {
     // Keys inside the nested "app" object
     enum AppCodingKeys: String, CodingKey {
         case name
+        case bundleId
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         opaqueId = try container.decode(String.self, forKey: .opaqueId)
-        // Derive a stable Int id from the opaque string for WindowModel conformance
-        id = abs(opaqueId.hashValue)
+        // Derive a stable non-negative Int id from the opaque string.
+        id = opaqueId.stableWindowId
         title = try container.decodeIfPresent(String.self, forKey: .title) ?? ""
         isFocused = try container.decodeIfPresent(Bool.self, forKey: .isFocused) ?? false
+        processId = try container.decodeIfPresent(Int.self, forKey: .pid)
 
         // "app" is a nested object: { "name": "Firefox", "bundleId": "..." }
         if let appContainer = try? container.nestedContainer(keyedBy: AppCodingKeys.self, forKey: .appObj) {
             appName = try appContainer.decodeIfPresent(String.self, forKey: .name)
+            appBundleId = try appContainer.decodeIfPresent(String.self, forKey: .bundleId)
         } else {
             appName = nil
+            appBundleId = nil
         }
 
         if let name = appName {
@@ -89,5 +95,16 @@ struct OmniWMSpace: SpaceModel {
         self.layout = layout
         self.isFocused = isFocused
         self.windows = windows
+    }
+}
+
+private extension String {
+    var stableWindowId: Int {
+        var hash: UInt64 = 14695981039346656037
+        for byte in utf8 {
+            hash ^= UInt64(byte)
+            hash &*= 1099511628211
+        }
+        return Int(hash & 0x7FFF_FFFF_FFFF_FFFF)
     }
 }

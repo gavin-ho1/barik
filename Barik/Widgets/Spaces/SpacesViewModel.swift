@@ -6,6 +6,9 @@ class SpacesViewModel: ObservableObject {
     @Published var spaces: [AnySpace] = []
     private var timer: Timer?
     private var provider: AnySpacesProvider?
+    private let loadingStateQueue = DispatchQueue(
+        label: "barik.spaces.loading-state")
+    private var isLoadingSpaces = false
 
     init() {
         let runningApps = NSWorkspace.shared.runningApplications.compactMap {
@@ -41,8 +44,22 @@ class SpacesViewModel: ObservableObject {
     }
 
     private func loadSpaces() {
+        let shouldLoad = loadingStateQueue.sync { () -> Bool in
+            guard !isLoadingSpaces else { return false }
+            isLoadingSpaces = true
+            return true
+        }
+        guard shouldLoad else { return }
+
         DispatchQueue.global(qos: .background).async {
-            guard let provider = self.provider,
+            defer {
+                self.loadingStateQueue.async {
+                    self.isLoadingSpaces = false
+                }
+            }
+
+            guard
+                let provider = self.provider,
                 let spaces = provider.getSpacesWithWindows()
             else {
                 DispatchQueue.main.async {
@@ -50,9 +67,60 @@ class SpacesViewModel: ObservableObject {
                 }
                 return
             }
-            let sortedSpaces = spaces.sorted { $0.id < $1.id }
+
+            let filteredSpaces = self.filterIgnoredApplications(from: spaces)
+            let sortedSpaces = filteredSpaces.sorted { $0.id < $1.id }
             DispatchQueue.main.async {
                 self.spaces = sortedSpaces
+            }
+        }
+    }
+
+    private func filterIgnoredApplications(from spaces: [AnySpace]) -> [AnySpace] {
+        let ignoredApplications = ignoredApplicationsSet
+        guard !ignoredApplications.isEmpty else {
+            return spaces
+        }
+
+        return spaces.compactMap { space in
+            let visibleWindows = space.windows.filter { window in
+                !self.shouldIgnore(window: window, ignoredApplications: ignoredApplications)
+            }
+
+            guard !visibleWindows.isEmpty || space.isFocused else {
+                return nil
+            }
+
+            return AnySpace(
+                id: space.id,
+                isFocused: space.isFocused,
+                windows: visibleWindows
+            )
+        }
+    }
+
+    private var ignoredApplicationsSet: Set<String> {
+        let widgetConfig = ConfigManager.shared.globalWidgetConfig(for: "default.spaces")
+        let windowConfig = widgetConfig["window"]?.dictionaryValue ?? [:]
+        let rawItems = windowConfig["ignore-list"]?.arrayValue ?? []
+
+        return Set(
+            rawItems.compactMap { $0.stringValue?.normalizedApplicationIdentifier }
+        )
+    }
+
+    private func shouldIgnore(window: AnyWindow, ignoredApplications: Set<String>) -> Bool {
+        let appName = window.appName?.normalizedApplicationIdentifier
+        let bundleId = window.appBundleId?.normalizedApplicationIdentifier
+        let title = window.title.normalizedApplicationIdentifier
+        let resolvedMetadata = RunningApplicationCache.shared.metadata(for: window.processId)
+        let resolvedAppName = resolvedMetadata?.localizedName?.normalizedApplicationIdentifier
+        let resolvedBundleId = resolvedMetadata?.bundleIdentifier?.normalizedApplicationIdentifier
+
+        return [appName, bundleId, resolvedAppName, resolvedBundleId, title].contains { identifier in
+            guard let identifier else { return false }
+            return ignoredApplications.contains { ignoredIdentifier in
+                identifier.matchesIgnoredApplication(ignoredIdentifier)
             }
         }
     }
@@ -71,11 +139,86 @@ class SpacesViewModel: ObservableObject {
     }
 }
 
+private extension AnySpace {
+    init(id: String, isFocused: Bool, windows: [AnyWindow]) {
+        self.id = id
+        self.isFocused = isFocused
+        self.windows = windows
+    }
+}
+
+private extension String {
+    var normalizedApplicationIdentifier: String {
+        trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    func matchesIgnoredApplication(_ ignoredIdentifier: String) -> Bool {
+        if self == ignoredIdentifier {
+            return true
+        }
+
+        // Bundle IDs may legitimately vary by helper suffixes.
+        if self.contains(".") || ignoredIdentifier.contains(".") {
+            return self.hasPrefix("\(ignoredIdentifier).")
+                || ignoredIdentifier.hasPrefix("\(self).")
+        }
+
+        return self.contains(ignoredIdentifier)
+    }
+}
+
+private final class RunningApplicationCache {
+    static let shared = RunningApplicationCache()
+
+    private var cache: [Int: RunningApplicationMetadata] = [:]
+    private let queue = DispatchQueue(label: "barik.spaces.running-application-cache")
+
+    private init() {}
+
+    func metadata(for processId: Int?) -> RunningApplicationMetadata? {
+        guard let processId else { return nil }
+
+        if let cached = queue.sync(execute: { cache[processId] }) {
+            return cached
+        }
+
+        let metadata = fetchMetadata(for: processId)
+        queue.sync {
+            cache[processId] = metadata
+        }
+        return metadata
+    }
+
+    private func fetchMetadata(for processId: Int) -> RunningApplicationMetadata {
+        guard
+            let app = NSRunningApplication(processIdentifier: pid_t(processId))
+        else {
+            return RunningApplicationMetadata(localizedName: nil, bundleIdentifier: nil)
+        }
+
+        return RunningApplicationMetadata(
+            localizedName: app.localizedName,
+            bundleIdentifier: app.bundleIdentifier
+        )
+    }
+}
+
+private struct RunningApplicationMetadata {
+    let localizedName: String?
+    let bundleIdentifier: String?
+}
+
 class IconCache {
     static let shared = IconCache()
     private let cache = NSCache<NSString, NSImage>()
     private init() {}
     func icon(for appName: String) -> NSImage? {
+        if !Thread.isMainThread {
+            return DispatchQueue.main.sync {
+                self.icon(for: appName)
+            }
+        }
+
         if let cached = cache.object(forKey: appName as NSString) {
             return cached
         }
