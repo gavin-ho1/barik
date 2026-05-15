@@ -20,7 +20,7 @@
   </p>
 </p>
 
-**barik** is a lightweight macOS menu bar replacement. If you use [**yabai**](https://github.com/koekeishiya/yabai) or [**AeroSpace**](https://github.com/nikitabobko/AeroSpace) for tiling WM, you can display the current space in a sleek macOS-style panel with smooth animations. This makes it easy to see which number to press to switch spaces.
+**barik** is a lightweight macOS menu bar replacement. If you use [**yabai**](https://github.com/koekeishiya/yabai), [**AeroSpace**](https://github.com/nikitabobko/AeroSpace), or [**OmniWM**](https://github.com/BarutSRB/OmniWM) for tiling WM, you can display the current space in a sleek macOS-style panel with smooth animations. This makes it easy to see which number to press to switch spaces.
 
 <br>
 
@@ -53,7 +53,7 @@ brew install --cask mocki-toki/formulae/barik
 
 Or you can download from [Releases](https://github.com/mocki-toki/barik/releases), unzip it, and move it to your Applications folder.
 
-2. _(Optional)_ To display open applications and spaces, install [**yabai**](https://github.com/koekeishiya/yabai) or [**AeroSpace**](https://github.com/nikitabobko/AeroSpace) and set up hotkeys. For **yabai**, you'll need **skhd** or **Raycast scripts**. Don't forget to configure **top padding** — [here's an example for **yabai**](https://github.com/mocki-toki/barik/blob/main/example/.yabairc).
+2. _(Optional)_ To display open applications and spaces, install [**yabai**](https://github.com/koekeishiya/yabai), [**AeroSpace**](https://github.com/nikitabobko/AeroSpace), or [**OmniWM**](https://github.com/BarutSRB/OmniWM) and set up hotkeys. For **yabai**, you'll need **skhd** or **Raycast scripts**. For **OmniWM**, enable IPC from the status bar menu. Don't forget to configure **top padding** — [here's an example for **yabai**](https://github.com/mocki-toki/barik/blob/main/example/.yabairc).
 
 3. Hide the system menu bar in **System Settings** and uncheck **Desktop & Dock → Show items → On Desktop**.
 
@@ -68,11 +68,12 @@ Or you can download from [Releases](https://github.com/mocki-toki/barik/releases
 When you launch **barik** for the first time, it will create a `~/.barik-config.toml` file with an example customization for your new menu bar.
 
 ```toml
-# If you installed yabai or aerospace without using Homebrew,
+# If you installed yabai, aerospace, or omniwm without using Homebrew,
 # manually set the path to the binary. For example:
 #
 # yabai.path = "/run/current-system/sw/bin/yabai"
 # aerospace.path = ...
+# omniwm.path = "/Applications/OmniWM.app/Contents/MacOS/omniwmctl"
 
 theme = "system" # system, light, dark
 

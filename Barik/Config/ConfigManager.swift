@@ -58,11 +58,12 @@ final class ConfigManager: ObservableObject {
 
     private func createDefaultConfig(at path: String) throws {
         let defaultTOML = """
-            # If you installed yabai or aerospace without using Homebrew,
+            # If you installed yabai, aerospace, or omniwm without using Homebrew,
             # manually set the path to the binary. For example:
             #
             # yabai.path = "/run/current-system/sw/bin/yabai"
             # aerospace.path = ...
+            # omniwm.path = "/Applications/OmniWM.app/Contents/MacOS/omniwmctl"
             
             theme = "system" # system, light, dark
 

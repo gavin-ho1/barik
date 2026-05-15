@@ -43,13 +43,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             &backgroundPanel,
             frame: screenFrame,
             panelFrame: screenFrame,
-            level: Int(CGWindowLevelForKey(.desktopWindow)),
+            level: NSWindow.Level.statusBar.rawValue - 1,
             hostingRootView: AnyView(BackgroundView()))
         setupPanel(
             &menuBarPanel,
             frame: screenFrame,
             panelFrame: panelFrame,
-            level: Int(CGWindowLevelForKey(.backstopMenu)),
+            level: NSWindow.Level.statusBar.rawValue,
             hostingRootView: AnyView(MenuBarView()))
     }
 
@@ -87,7 +87,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         newPanel.level = NSWindow.Level(rawValue: level)
         newPanel.backgroundColor = .clear
         newPanel.hasShadow = false
-        newPanel.collectionBehavior = [.canJoinAllSpaces]
+        newPanel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        newPanel.setAccessibilityRole(.popover)
+        newPanel.setAccessibilityElement(false)
         newPanel.contentView = NSHostingView(rootView: hostingRootView)
         newPanel.orderFront(nil)
         panel = newPanel

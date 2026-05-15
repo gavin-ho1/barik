@@ -55,6 +55,8 @@ struct AnySpace: Identifiable, Equatable {
             self.id = aero.workspace
         } else if let yabai = space as? YabaiSpace {
             self.id = String(yabai.id)
+        } else if let omniwm = space as? OmniWMSpace {
+            self.id = omniwm.rawName
         } else {
             self.id = "0"
         }

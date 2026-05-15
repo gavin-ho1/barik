@@ -15,6 +15,8 @@ class SpacesViewModel: ObservableObject {
             provider = AnySpacesProvider(YabaiSpacesProvider())
         } else if runningApps.contains("aerospace") {
             provider = AnySpacesProvider(AerospaceSpacesProvider())
+        } else if runningApps.contains("omniwm") {
+            provider = AnySpacesProvider(OmniWMSpacesProvider())
         } else {
             provider = nil
         }
