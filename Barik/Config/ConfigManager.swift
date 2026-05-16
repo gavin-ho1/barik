@@ -82,6 +82,7 @@ final class ConfigManager: ObservableObject {
             space.show-key = true        # show space number (or character, if you use AeroSpace)
             window.show-title = true
             window.title.max-length = 50
+            window.group-by-app = false   # group windows of the same application under one icon
             # Hide matching apps from the spaces widget.
             # Entries can be app names (all WMs) or bundle identifiers (OmniWM).
             # window.ignore-list = ["Barik", "com.apple.systempreferences"]

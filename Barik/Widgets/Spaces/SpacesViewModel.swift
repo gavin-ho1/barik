@@ -69,7 +69,8 @@ class SpacesViewModel: ObservableObject {
             }
 
             let filteredSpaces = self.filterIgnoredApplications(from: spaces)
-            let sortedSpaces = filteredSpaces.sorted { $0.id < $1.id }
+            let groupedSpaces = self.groupWindowsByAppIfNeeded(from: filteredSpaces)
+            let sortedSpaces = groupedSpaces.sorted { $0.id < $1.id }
             DispatchQueue.main.async {
                 self.spaces = sortedSpaces
             }
@@ -97,6 +98,61 @@ class SpacesViewModel: ObservableObject {
                 windows: visibleWindows
             )
         }
+    }
+
+    private func groupWindowsByAppIfNeeded(from spaces: [AnySpace]) -> [AnySpace] {
+        let widgetConfig = ConfigManager.shared.globalWidgetConfig(for: "default.spaces")
+        let windowConfig = widgetConfig["window"]?.dictionaryValue ?? [:]
+        let groupByApp = windowConfig["group-by-app"]?.boolValue ?? false
+
+        guard groupByApp else {
+            return spaces
+        }
+
+        return spaces.map { space in
+            let groupedWindows = groupWindowsByApp(space.windows)
+            return AnySpace(
+                id: space.id,
+                isFocused: space.isFocused,
+                windows: groupedWindows
+            )
+        }
+    }
+
+    private func groupWindowsByApp(_ windows: [AnyWindow]) -> [AnyWindow] {
+        var appGroups: [String: [AnyWindow]] = [:]
+
+        for window in windows {
+            let key = window.appName ?? "Unknown"
+            if appGroups[key] == nil {
+                appGroups[key] = []
+            }
+            appGroups[key]?.append(window)
+        }
+
+        var result: [AnyWindow] = []
+        for (appName, windowsInGroup) in appGroups {
+            if windowsInGroup.count == 1 {
+                result.append(windowsInGroup[0])
+            } else {
+                // Create a grouped window representation
+                let representativeWindow = windowsInGroup.first { $0.isFocused } ?? windowsInGroup.first!
+                let groupedWindow = AnyWindow(
+                    id: representativeWindow.id,
+                    title: representativeWindow.title,
+                    appName: appName,
+                    appBundleId: representativeWindow.appBundleId,
+                    processId: representativeWindow.processId,
+                    isFocused: representativeWindow.isFocused,
+                    appIcon: representativeWindow.appIcon,
+                    windowCount: windowsInGroup.count,
+                    groupedWindows: windowsInGroup
+                )
+                result.append(groupedWindow)
+            }
+        }
+
+        return result.sorted { $0.appName ?? "" < $1.appName ?? "" }
     }
 
     private var ignoredApplicationsSet: Set<String> {
