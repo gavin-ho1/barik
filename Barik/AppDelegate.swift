@@ -158,36 +158,6 @@ private final class ClickThroughHostingView<Content: View>: NSHostingView<Conten
             return nil
         }
 
-        guard containsVisibleContent(at: point) else {
-            return nil
-        }
-
         return hitView
-    }
-
-    private func containsVisibleContent(at point: NSPoint) -> Bool {
-        let bounds = self.bounds.integral
-        guard bounds.width > 0, bounds.height > 0, bounds.contains(point) else {
-            return false
-        }
-
-        guard
-            let bitmap = bitmapImageRepForCachingDisplay(in: bounds)
-        else {
-            return true
-        }
-
-        cacheDisplay(in: bounds, to: bitmap)
-
-        let x = Int(point.x.rounded(.down))
-        let flippedY = Int((bounds.height - point.y).rounded(.down))
-        let pixelX = min(max(x, 0), bitmap.pixelsWide - 1)
-        let pixelY = min(max(flippedY, 0), bitmap.pixelsHigh - 1)
-
-        guard let color = bitmap.colorAt(x: pixelX, y: pixelY) else {
-            return true
-        }
-
-        return color.alphaComponent > 0.02
     }
 }

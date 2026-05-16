@@ -12,7 +12,7 @@ class OmniWMSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
         guard let spaces = fetchSpaces() else { return nil }
 
         guard let windowData = runOmniWMCommand(arguments: [
-            "query", "windows", "--json",
+            "query", "windows", "--format", "json",
         ]) else {
             return nil
         }
@@ -127,7 +127,7 @@ class OmniWMSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
 
     private func fetchSpaces() -> [OmniWMSpace]? {
         guard let data = runOmniWMCommand(arguments: [
-            "query", "workspaces", "--json",
+            "query", "workspaces", "--format", "json",
         ]) else {
             return nil
         }
