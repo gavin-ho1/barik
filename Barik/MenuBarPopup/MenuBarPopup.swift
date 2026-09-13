@@ -35,11 +35,25 @@ class HidingPanel: NSPanel, NSWindowDelegate {
 
 class MenuBarPopup {
     static var lastContentIdentifier: String? = nil
+    private static var isInputSuppressed = false
+
+    static func setInputSuppressed(_ isSuppressed: Bool) {
+        isInputSuppressed = isSuppressed
+        panel?.ignoresMouseEvents = isSuppressed
+
+        guard isSuppressed else { return }
+        if let hidingPanel = panel as? HidingPanel {
+            hidingPanel.hideTimer?.invalidate()
+            hidingPanel.hideTimer = nil
+        }
+        panel?.orderOut(nil)
+        lastContentIdentifier = nil
+    }
 
     static func show<Content: View>(
         rect: CGRect, id: String, @ViewBuilder content: @escaping () -> Content
     ) {
-        guard let panel = panel else { return }
+        guard !isInputSuppressed, let panel = panel else { return }
 
         if panel.isKeyWindow, lastContentIdentifier == id {
             NotificationCenter.default.post(name: .willHideWindow, object: nil)
@@ -71,6 +85,7 @@ class MenuBarPopup {
                 / 1000.0
             let duration = isContentChange ? baseDuration / 2 : baseDuration
             DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+                guard !isInputSuppressed else { return }
                 panel.contentView = NSHostingView(
                     rootView:
                         ZStack {
@@ -128,6 +143,7 @@ class MenuBarPopup {
         newPanel.backgroundColor = .clear
         newPanel.hasShadow = false
         newPanel.collectionBehavior = [.canJoinAllSpaces]
+        newPanel.ignoresMouseEvents = isInputSuppressed
 
         panel = newPanel
     }

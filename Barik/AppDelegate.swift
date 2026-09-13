@@ -3,6 +3,11 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var backgroundPanel: NSPanel?
     private var menuBarPanel: NSPanel?
+    private var lockInputMonitor: DispatchSourceTimer?
+    private let lockInputMonitorQueue = DispatchQueue(
+        label: "barik.aerospace.lock-input-monitor", qos: .utility)
+    private lazy var aerospaceLockProvider = AerospaceSpacesProvider()
+    private var isLockInputSuppressed = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let error = ConfigManager.shared.initError {
@@ -21,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         
         MenuBarPopup.setup()
         setupPanels()
+        startLockInputMonitoring()
 
         NotificationCenter.default.addObserver(
             self,
@@ -31,6 +37,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func screenParametersDidChange(_ notification: Notification) {
         setupPanels()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        lockInputMonitor?.cancel()
+        lockInputMonitor = nil
+    }
+
+    /// Poll lock state off the main thread. The marker makes lock entry
+    /// immediate, while the AeroSpace mode query keeps input disabled until
+    /// the lock mode has actually finished restoring the prior workspace.
+    private func startLockInputMonitoring() {
+        let monitor = DispatchSource.makeTimerSource(queue: lockInputMonitorQueue)
+        monitor.schedule(
+            deadline: .now(), repeating: .milliseconds(100),
+            leeway: .milliseconds(20))
+        monitor.setEventHandler { [weak self] in
+            guard let self else { return }
+            let isLocked = self.aerospaceLockProvider.shouldFreezeUpdates()
+            DispatchQueue.main.async { [weak self] in
+                self?.setLockInputSuppressed(isLocked)
+            }
+        }
+        lockInputMonitor = monitor
+        monitor.resume()
+    }
+
+    private func setLockInputSuppressed(_ isSuppressed: Bool) {
+        guard isLockInputSuppressed != isSuppressed else { return }
+        isLockInputSuppressed = isSuppressed
+        menuBarPanel?.ignoresMouseEvents = isSuppressed
+        MenuBarPopup.setInputSuppressed(isSuppressed)
     }
 
     /// Configures and displays the background and menu bar panels.
@@ -57,7 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             frame: screenFrame,
             panelFrame: panelFrame,
             level: menuBarLevel,
-            ignoresMouseEvents: false,
+            ignoresMouseEvents: isLockInputSuppressed,
             hostingRootView: AnyView(MenuBarView()))
     }
 
@@ -149,4 +186,3 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.terminate(nil)
     }
 }
-

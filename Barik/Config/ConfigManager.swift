@@ -86,6 +86,8 @@ final class ConfigManager: ObservableObject {
             # Hide matching apps from the spaces widget.
             # Entries can be app names (all WMs) or bundle identifiers (OmniWM).
             # window.ignore-list = ["Barik", "com.apple.systempreferences"]
+            # Hide entire spaces/workspaces from the widget by their id/name.
+            # space.ignore-list = ["L"]
 
             [widgets.default.battery]
             show-percentage = true

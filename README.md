@@ -95,6 +95,7 @@ space.show-key = true        # show space number (or character, if you use AeroS
 window.show-title = true
 window.title.max-length = 50
 window.ignore-list = ["Barik"] # hide matching apps by app name or, with OmniWM, by bundle ID
+space.ignore-list = ["L"] # hide these spaces/workspaces entirely, by id/name
 
 # A list of applications that will always be displayed by application name.
 # Other applications will show the window title if there is more than one window.

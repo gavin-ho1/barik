@@ -3,6 +3,36 @@ import Foundation
 class AerospaceSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
     typealias SpaceType = AeroSpace
     let executablePath = ConfigManager.shared.config.aerospace.path
+    private let lockMarkerPath = "/tmp/aerospace-lock-active"
+    private let modeStateQueue = DispatchQueue(label: "barik.aerospace.mode-state")
+    private var lastKnownLockedMode = false
+
+    func shouldFreezeUpdates() -> Bool {
+        // The marker is created before the lock workspace transition, so it
+        // closes the small race before AeroSpace has applied `mode locked`.
+        if FileManager.default.fileExists(atPath: lockMarkerPath) {
+            modeStateQueue.sync { lastKnownLockedMode = true }
+            return true
+        }
+
+        guard
+            let data = runAerospaceCommand(arguments: ["list-modes", "--current"]),
+            let output = String(data: data, encoding: .utf8)
+        else {
+            // If the mode query briefly fails during a lock, fail closed and
+            // keep the last stable workspace model instead of flashing `L`.
+            return modeStateQueue.sync { lastKnownLockedMode }
+        }
+
+        let modes = output.split(whereSeparator: { $0.isWhitespace })
+        guard !modes.isEmpty else {
+            return modeStateQueue.sync { lastKnownLockedMode }
+        }
+
+        let isLocked = modes.contains("locked")
+        modeStateQueue.sync { lastKnownLockedMode = isLocked }
+        return isLocked
+    }
 
     func getSpacesWithWindows() -> [AeroSpace]? {
         guard var spaces = fetchSpaces(), let windows = fetchWindows() else {
@@ -41,10 +71,12 @@ class AerospaceSpacesProvider: SpacesProvider, SwitchableSpacesProvider {
     }
 
     func focusSpace(spaceId: String, needWindowFocus: Bool) {
+        guard !shouldFreezeUpdates() else { return }
         _ = runAerospaceCommand(arguments: ["workspace", spaceId])
     }
 
     func focusWindow(windowId: String) {
+        guard !shouldFreezeUpdates() else { return }
         _ = runAerospaceCommand(arguments: ["focus", "--window-id", windowId])
     }
 

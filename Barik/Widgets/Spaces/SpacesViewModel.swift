@@ -72,23 +72,61 @@ class SpacesViewModel: ObservableObject {
                 self.detectProvider()
             }
 
-            guard
-                let provider = self.provider,
-                let spaces = provider.getSpacesWithWindows()
-            else {
+            guard let provider = self.provider else {
+                return
+            }
+
+            // AeroSpace's dedicated lock mode temporarily focuses workspace
+            // `L`. Keep publishing the last normal workspace snapshot while
+            // locked so the rest of Barik remains live without animating the
+            // spaces widget into a screensaver-only state.
+            guard !provider.shouldFreezeUpdates() else {
+                return
+            }
+
+            guard let spaces = provider.getSpacesWithWindows() else {
                 if self.provider != nil {
                     print("SpacesWidget: Failed to fetch spaces from provider")
                 }
                 return
             }
 
-            let filteredSpaces = self.filterIgnoredApplications(from: spaces)
+            // Recheck after the multi-command fetch. If locking began while
+            // it was in flight, discard the fetched snapshot rather than
+            // committing a single-frame workspace change.
+            guard !provider.shouldFreezeUpdates() else {
+                return
+            }
+
+            let visibleSpaces = self.filterIgnoredSpaces(from: spaces)
+            let filteredSpaces = self.filterIgnoredApplications(from: visibleSpaces)
             let groupedSpaces = self.groupWindowsByAppIfNeeded(from: filteredSpaces)
             let sortedSpaces = groupedSpaces.sorted { $0.id < $1.id }
             DispatchQueue.main.async {
                 self.spaces = sortedSpaces
             }
         }
+    }
+
+    private func filterIgnoredSpaces(from spaces: [AnySpace]) -> [AnySpace] {
+        let ignoredSpaces = ignoredSpacesSet
+        guard !ignoredSpaces.isEmpty else {
+            return spaces
+        }
+
+        return spaces.filter { space in
+            !ignoredSpaces.contains(space.id.normalizedApplicationIdentifier)
+        }
+    }
+
+    private var ignoredSpacesSet: Set<String> {
+        let widgetConfig = ConfigManager.shared.globalWidgetConfig(for: "default.spaces")
+        let spaceConfig = widgetConfig["space"]?.dictionaryValue ?? [:]
+        let rawItems = spaceConfig["ignore-list"]?.arrayValue ?? []
+
+        return Set(
+            rawItems.compactMap { $0.stringValue?.normalizedApplicationIdentifier }
+        )
     }
 
     private func filterIgnoredApplications(from spaces: [AnySpace]) -> [AnySpace] {

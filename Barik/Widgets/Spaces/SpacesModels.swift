@@ -19,6 +19,11 @@ protocol WindowModel: Identifiable, Equatable, Codable {
 protocol SpacesProvider {
     associatedtype SpaceType: SpaceModel
     func getSpacesWithWindows() -> [SpaceType]?
+    func shouldFreezeUpdates() -> Bool
+}
+
+extension SpacesProvider {
+    func shouldFreezeUpdates() -> Bool { false }
 }
 
 protocol SwitchableSpacesProvider: SpacesProvider {
@@ -98,12 +103,16 @@ struct AnySpace: Identifiable, Equatable {
 
 class AnySpacesProvider {
     private let _getSpacesWithWindows: () -> [AnySpace]?
+    private let _shouldFreezeUpdates: () -> Bool
     private let _focusSpace: ((String, Bool) -> Void)?
     private let _focusWindow: ((String) -> Void)?
 
     init<P: SpacesProvider>(_ provider: P) {
         _getSpacesWithWindows = {
             provider.getSpacesWithWindows()?.map { AnySpace($0) }
+        }
+        _shouldFreezeUpdates = {
+            provider.shouldFreezeUpdates()
         }
         if let switchable = provider as? any SwitchableSpacesProvider {
             _focusSpace = { spaceId, needWindowFocus in
@@ -123,11 +132,17 @@ class AnySpacesProvider {
         _getSpacesWithWindows()
     }
 
+    func shouldFreezeUpdates() -> Bool {
+        _shouldFreezeUpdates()
+    }
+
     func focusSpace(spaceId: String, needWindowFocus: Bool) {
+        guard !shouldFreezeUpdates() else { return }
         _focusSpace?(spaceId, needWindowFocus)
     }
 
     func focusWindow(windowId: String) {
+        guard !shouldFreezeUpdates() else { return }
         _focusWindow?(windowId)
     }
 }
